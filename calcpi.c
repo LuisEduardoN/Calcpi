@@ -1,81 +1,68 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <pthread.h>
-#include <unistd.h>
 #include "calcpi.h"
 
 double *somatoria;
 
-void divideWork(long nSerie, int nThreads, int* listaNSerie){
-    listaNSerie[0] = 0;
-    int division = nSerie/nThreads;
-    for (int i = 1; i <= nThreads; i++)
-    {
-        listaNSerie[i] = listaNSerie[i-1]+division;
-    }
-}
-
-
 void* calcPI(void* args){
-    sleep(5);
     valores *v = (valores*) args;    
-    int inicio = v->inicio;
-    int fim = v->fim;
-    for(int j = inicio; j<(fim); j++){
-        somatoria[v->i] = somatoria[v->i] + pow(-1,j)/(2.0*j+1);
+    long divisao = v->nSerie/v->nThreads;
+    long inicio = v->i * divisao;
+    long fim = inicio + divisao;
+    if ((v->i)==(v->nThreads-1))
+    {
+        fim = v->nSerie;
+    }
+    for (long i = inicio; i < fim; i++)
+    {
+        somatoria[v->i] += ( (i%2==0) ? 1.0 : -1.0) / (2*i+1);
+    }
+    
+}
+
+void createAndJoinThreads(int nThreads, valores* v, pthread_t* threads_ids) {
+    for (int i = 0; i < nThreads; i++) {
+        v[i].i = i;
+        pthread_create(&threads_ids[i], NULL, calcPI, (void*)&v[i]);
+    }
+    for (int i = 0; i < nThreads; i++) {
+        pthread_join(threads_ids[i], NULL);
     }
 }
 
-int main(int argc, char const *argv[])
+int main()
 {   
     
-    long nSerie;
+    long nSerie = 10000000000;
     int nThreads;
     double pi;
 
-    printf("Digite o número de série: ");
-    scanf("%ld",&nSerie);
-
     printf("Digite o número de threads: ");
     scanf("%d",&nThreads);
-
-    int *seriesDivided = (int*)malloc((nThreads + 1) * sizeof(int));
-    valores *v = (valores*)malloc((nThreads)*sizeof(valores));
-    somatoria = (double*)malloc(nThreads*sizeof(double));    
-
-    divideWork(nSerie,nThreads,seriesDivided);
     
+    valores *v = (valores*)malloc((nThreads)*sizeof(valores));
+    somatoria = (double*)calloc(nThreads, sizeof(double));
+    
+    for (int i = 0; i < nThreads; i++) {
+        v[i].nThreads = nThreads;
+        v[i].nSerie = nSerie;
+    }
     
     pthread_t threads_ids[nThreads];
+    createAndJoinThreads(nThreads, v, threads_ids);
 
-    for (int i = 0; i < nThreads; i++)
-    {
-        v[i].inicio = seriesDivided[i];
-        v[i].fim = seriesDivided[i+1];
-        v[i].i = i;
-        pthread_create(&threads_ids[i],NULL, calcPI,(void*)&v[i]);
-    }
-
-    for (int i = 0; i < nThreads; i++)
-    {
-        pthread_join(threads_ids[i],NULL);
-    }
-
-    free(seriesDivided);
-
-    double somatoriaTotal = 0;
+    free(v);
     
+    double somatoriaTotal = 0;
     for (int i = 0; i < nThreads; i++)
-    {   
-        somatoriaTotal = somatoriaTotal + somatoria[i];
+    {
+        somatoriaTotal+=somatoria[i];
     }
+    
+    printf("Valor de pi calculado: %.25f\n",somatoriaTotal*4);
 
     free(somatoria);
-
-    pi = somatoriaTotal*4;
-    printf("Valor de pi calculado: %.15f\n",pi);
-    printf("Valor de pi real: %.15f\n",M_PI);
 
     return 0;
 }
