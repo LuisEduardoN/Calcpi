@@ -8,4 +8,4 @@ typedef struct args
 } valores;
 
 void* calcPI(void* args);
-void createAndJoinThreads(int nThreads, valores* v, pthread_t* threads_ids);
+void createAndJoinThreads(valores* v, pthread_t* threads_ids);

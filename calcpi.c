@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <sys/time.h>
 #include "calcpi.h"
 
 double *somatoria;
@@ -21,12 +22,12 @@ void* calcPI(void* args){
     
 }
 
-void createAndJoinThreads(int nThreads, valores* v, pthread_t* threads_ids) {
-    for (int i = 0; i < nThreads; i++) {
+void createAndJoinThreads(valores* v, pthread_t* threads_ids) {
+    for (int i = 0; i < v->nThreads; i++) {
         v[i].i = i;
         pthread_create(&threads_ids[i], NULL, calcPI, (void*)&v[i]);
     }
-    for (int i = 0; i < nThreads; i++) {
+    for (int i = 0; i < v->nThreads; i++) {
         pthread_join(threads_ids[i], NULL);
     }
 }
@@ -37,6 +38,8 @@ int main()
     long nSerie = 10000000000;
     int nThreads;
     double pi;
+    struct timeval start, end;
+    
 
     printf("Digite o número de threads: ");
     scanf("%d",&nThreads);
@@ -50,9 +53,15 @@ int main()
     }
     
     pthread_t threads_ids[nThreads];
-    createAndJoinThreads(nThreads, v, threads_ids);
+
+    gettimeofday(&start,NULL);
+    createAndJoinThreads(v, threads_ids);
+    gettimeofday(&end,NULL);
 
     free(v);
+    
+    double timeInSeconds = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+    printf("Tempo de execução com %d threads: %.2f segundos\n",nThreads,timeInSeconds);
     
     double somatoriaTotal = 0;
     for (int i = 0; i < nThreads; i++)
@@ -60,7 +69,8 @@ int main()
         somatoriaTotal+=somatoria[i];
     }
     
-    printf("Valor de pi calculado: %.25f\n",somatoriaTotal*4);
+    printf("Valor de pi calculado: %.20f\n",somatoriaTotal*4);
+    printf("Valor de pi real: %.20f\n",M_PI);
 
     free(somatoria);
 
