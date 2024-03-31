@@ -1,14 +1,11 @@
-#ifndef M_PI
 #define M_PI 3.14159265358979323846
-#endif
 
 typedef struct args
 {
-    int inicio;
-    int fim;
+    long nSerie;
+    int nThreads;
     int i;
 } valores;
 
-
-void divideWork(long nSerie, int nThreads, int* listaNSerie);
-void* calcPI(void* lista);
+void* calcPI(void* args);
+void createAndJoinThreads(int nThreads, valores* v, pthread_t* threads_ids);
